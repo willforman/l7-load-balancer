@@ -6,15 +6,15 @@ import (
 )
 
 type host struct {
-	addr string
+	addr  string
 	proxy *httputil.ReverseProxy
 	alive bool
 }
 
 type hostRing struct {
 	hosts []host
-	curr int
-	len int
+	curr  int
+	len   int
 }
 
 func newHost(addr string) (*host, error) {
@@ -23,7 +23,7 @@ func newHost(addr string) (*host, error) {
 		return nil, err
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
-	return &host{ addr, proxy, true }, nil
+	return &host{addr, proxy, true}, nil
 }
 
 func newHostRing(addrs []string) (*hostRing, error) {
@@ -38,12 +38,12 @@ func newHostRing(addrs []string) (*hostRing, error) {
 		hosts[i] = *host
 	}
 
-	return &hostRing{ hosts, 0, hostsLen }, nil
+	return &hostRing{hosts, 0, hostsLen}, nil
 }
 
 func (ring *hostRing) get() host {
 	host := ring.hosts[ring.curr]
-	if ring.curr == ring.len - 1 {
+	if ring.curr == ring.len-1 {
 		ring.curr = 0
 	} else {
 		ring.curr++

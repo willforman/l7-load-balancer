@@ -1,4 +1,4 @@
-package loadbalancer 
+package loadbalancer
 
 import (
 	"log"
@@ -7,12 +7,12 @@ import (
 
 type LoadBalancerArgs struct {
 	Hosts []string
-	Port int
+	Port  int
 }
 
 type LoadBalancer struct {
 	hostRing hostRing
-	port int
+	port     int
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
@@ -29,8 +29,8 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h := lb.hostRing.get()
-        h.proxy.ServeHTTP(w, r)
-    }
+		h.proxy.ServeHTTP(w, r)
+	}
 }
 
 func (lb *LoadBalancer) Start() {

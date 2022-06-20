@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"strconv"
+	"testing"
 
 	"github.com/matryer/is"
 )
@@ -14,7 +14,7 @@ func TestParseArgs_Correct(t *testing.T) {
 	testHosts := []string{"host1", "host2", "host3"}
 	testArgs := append([]string{strconv.Itoa(testPort)}, testHosts...)
 	appArgs, err := parseArgs(testArgs)
-	
+
 	is.NoErr(err)
 	is.True(appArgs != nil)
 

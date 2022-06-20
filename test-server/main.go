@@ -9,11 +9,11 @@ import (
 
 type TestResponse struct {
 	Name string `json:"name"`
-	Cnt int `json:"cnt"`
+	Cnt  int    `json:"cnt"`
 }
 
 func handle(tr *TestResponse) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Hit!")
 		switch r.Method {
 		case http.MethodGet:
@@ -34,6 +34,6 @@ func main() {
 	portStr := os.Args[1]
 	tr := TestResponse{portStr, 0}
 
-	http.HandleFunc("/api/words", handle(&tr));
+	http.HandleFunc("/api/words", handle(&tr))
 	log.Fatal(http.ListenAndServe(portStr, nil))
 }

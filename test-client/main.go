@@ -11,7 +11,7 @@ import (
 
 type TestResponse struct {
 	Name string `json:"name"`
-	Cnt int `json:"cnt"`
+	Cnt  int    `json:"cnt"`
 }
 
 func get(hostAddr string) {
@@ -20,7 +20,7 @@ func get(hostAddr string) {
 		panic(err)
 	}
 	defer res.Body.Close()
-	
+
 	var tr TestResponse
 	err = json.NewDecoder(res.Body).Decode(&tr)
 	if err != nil {

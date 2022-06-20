@@ -21,7 +21,7 @@ func parseArgs(args []string) (*LoadBalancerArgs, error) {
 	}
 	hosts := args[1:]
 	return &LoadBalancerArgs{
-		Port: port,
+		Port:  port,
 		Hosts: hosts,
 	}, nil
 }
