@@ -1,34 +1,34 @@
-package main
+package loadbalancer
 
 import (
 	"net/http/httputil"
 	"net/url"
 )
 
-type Host struct {
+type host struct {
 	addr string
 	proxy *httputil.ReverseProxy
 	alive bool
 }
 
-type HostRing struct {
-	hosts []Host
+type hostRing struct {
+	hosts []host
 	curr int
 	len int
 }
 
-func newHost(addr string) (*Host, error) {
+func newHost(addr string) (*host, error) {
 	url, err := url.Parse(addr)
 	if err != nil {
 		return nil, err
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
-	return &Host{ addr, proxy, true }, nil
+	return &host{ addr, proxy, true }, nil
 }
 
-func newHostRing(addrs []string) (*HostRing, error) {
+func newHostRing(addrs []string) (*hostRing, error) {
 	hostsLen := len(addrs)
-	hosts := make([]Host, hostsLen)
+	hosts := make([]host, hostsLen)
 
 	for i, addr := range addrs {
 		host, err := newHost(addr)
@@ -38,10 +38,10 @@ func newHostRing(addrs []string) (*HostRing, error) {
 		hosts[i] = *host
 	}
 
-	return &HostRing{ hosts, 0, hostsLen }, nil
+	return &hostRing{ hosts, 0, hostsLen }, nil
 }
 
-func (ring *HostRing) get() Host {
+func (ring *hostRing) get() host {
 	host := ring.hosts[ring.curr]
 	if ring.curr == ring.len - 1 {
 		ring.curr = 0

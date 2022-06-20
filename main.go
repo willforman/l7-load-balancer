@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	. "github.com/willforman/l7-load-balancer/loadbalancer"
 )
 
-type appArgs struct {
-	port int
-	hosts []string
-}
-
-func parseArgs(args []string) (*appArgs, error) {
+func parseArgs(args []string) (*LoadBalancerArgs, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("num args provided < 2 [%d]", len(args))
 	}
@@ -23,9 +20,9 @@ func parseArgs(args []string) (*appArgs, error) {
 		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", port)
 	}
 	hosts := args[1:]
-	return &appArgs{
-		port,
-		hosts,
+	return &LoadBalancerArgs{
+		Port: port,
+		Hosts: hosts,
 	}, nil
 }
 
@@ -34,9 +31,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lb, err := newLoadBalancer(args)
+	lb, err := NewLoadBalancer(args)
 	if err != nil {
 		panic(err)
 	}
-	startServer(lb)
+	lb.Start()
 }
