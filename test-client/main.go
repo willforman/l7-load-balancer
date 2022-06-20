@@ -43,7 +43,7 @@ func post(hostAddr string, inc int) {
 
 func main() {
 	if len(os.Args) != 2 {
-		panic("Must provide host address")
+		panic("must provide host address")
 	}
 
 	hostAddr := os.Args[1]
@@ -56,7 +56,7 @@ func main() {
 		case 0:
 			get(hostAddr)
 		case 1:
-			post(hostAddr, 10)
+			post(hostAddr, 1)
 		}
 	}
 }
