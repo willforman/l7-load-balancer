@@ -10,7 +10,7 @@ func TestHostRingGet(t *testing.T) {
 	is := is.New(t)
 
 	addrs := []string{"host1", "host2", "host3"}
-	ring, err := newHostRing(addrs)
+	ring, err := newServerRing(addrs)
 
 	is.NoErr(err)
 
