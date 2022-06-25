@@ -45,7 +45,7 @@ func (lb *LoadBalancer) startWatchDog() func() {
 	for {
 		<-ticker.C
 		lb.serverRing.doAll(func(server *server) {
-			alive := isAlive(server.url.Host)
+			alive := isAlive(server.addr)
 			if alive != server.alive {
 				server.mu.Lock()
 				server.alive = alive

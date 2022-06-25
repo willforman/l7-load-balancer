@@ -9,7 +9,7 @@ import (
 )
 
 type server struct {
-	url *url.URL
+	addr string
 	proxy *httputil.ReverseProxy
 	alive bool
 	mu sync.Mutex
@@ -37,7 +37,7 @@ func newServer(addr string) (*server, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
-	return &server{url, proxy, isAlive(url.Host), mu}, nil
+	return &server{url.Host, proxy, isAlive(url.Host), mu}, nil
 }
 
 func newServerRing(addrs []string) (*serverRing, error) {
