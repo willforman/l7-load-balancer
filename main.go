@@ -19,10 +19,9 @@ func parseArgs(args []string) (*LoadBalancerArgs, error) {
 	if portNum < 1024 || portNum > 65535 {
 		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", portNum)
 	}
-	hosts := args[1:]
 	return &LoadBalancerArgs{
 		Port:  args[0],
-		Hosts: hosts,
+		Addrs: args[1:],
 	}, nil
 }
 

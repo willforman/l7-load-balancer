@@ -8,78 +8,78 @@ import (
 	"time"
 )
 
-type host struct {
+type server struct {
 	url *url.URL
 	proxy *httputil.ReverseProxy
 	alive bool
 	mu sync.Mutex
 }
 
-type hostRing struct {
-	hosts []host
+type serverRing struct {
+	servers []server
 	curr  int
 	len   int
 }
 
 func isAlive(addr string) bool {
 	conn, _ := net.DialTimeout("tcp", addr, time.Second * 10)
-	println(addr, ":", conn != nil)
 	if conn != nil {
-		defer conn.Close()
+		conn.Close()
+		return true
 	}
-	return conn != nil
+	return false
 }
 
-func newHost(addr string) (*host, error) {
+func newServer(addr string) (*server, error) {
 	url, err := url.Parse(addr)
 	if err != nil {
 		return nil, err
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
-	return &host{url, proxy, isAlive(url.Host), mu}, nil
+	return &server{url, proxy, isAlive(url.Host), mu}, nil
 }
 
-func newHostRing(addrs []string) (*hostRing, error) {
-	hostsLen := len(addrs)
-	hosts := make([]host, hostsLen)
+func newServerRing(addrs []string) (*serverRing, error) {
+	serversLen := len(addrs)
+	servers := make([]server, serversLen)
 
 	for i, addr := range addrs {
-		host, err := newHost(addr)
+		server, err := newServer(addr)
 		if err != nil {
 			return nil, err
 		}
-		hosts[i] = *host
+		servers[i] = *server
 	}
 
-	return &hostRing{hosts, 0, hostsLen}, nil
+	return &serverRing{servers, 0, serversLen}, nil
 }
 
-func (ring *hostRing) get() *host {
-	host := &ring.hosts[ring.curr]
+func (ring *serverRing) get() *server {
+	server := &ring.servers[ring.curr]
 	if ring.curr == ring.len-1 {
 		ring.curr = 0
 	} else {
 		ring.curr++
 	}
-	return host
+	return server
 }
 
-func (ring *hostRing) getAlive() *host {
+func (ring *serverRing) getAlive() *server {
 	for i := 0; i < ring.len; i++ {
-		host := ring.get()
-		host.mu.Lock()
-		alive := host.alive
-		host.mu.Unlock()
+		server := ring.get()
+		server.mu.Lock()
+		alive := server.alive
+		server.mu.Unlock()
 		if alive {
-			return host
+			return server
 		}
 	}
 	return nil
 }
 
-func (ring *hostRing) doAll(fn func(*host)) {
+func (ring *serverRing) doAll(fn func(*server)) {
 	for i := 0; i < ring.len; i++ {
-		fn(&ring.hosts[i])
+		fn(&ring.servers[i])
 	}
 }
