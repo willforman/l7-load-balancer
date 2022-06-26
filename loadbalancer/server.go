@@ -15,12 +15,6 @@ type server struct {
 	mu *sync.Mutex
 }
 
-type serverRing struct {
-	servers []server
-	curr  int
-	len   int
-}
-
 func isAlive(addr string) bool {
 	conn, _ := net.DialTimeout("tcp", addr, time.Second * 10)
 	if conn != nil {
@@ -40,35 +34,3 @@ func newServer(addr string) (*server, error) {
 	return &server{url.Host, *proxy, isAlive(url.Host), &mu}, nil
 }
 
-func newServerRing(servers []server) *serverRing {
-	return &serverRing{servers, 0, len(servers)}
-}
-
-func (ring *serverRing) get() *server {
-	server := &ring.servers[ring.curr]
-	if ring.curr == ring.len-1 {
-		ring.curr = 0
-	} else {
-		ring.curr++
-	}
-	return server
-}
-
-func (ring *serverRing) getAlive() *server {
-	for i := 0; i < ring.len; i++ {
-		server := ring.get()
-		server.mu.Lock()
-		alive := server.alive
-		server.mu.Unlock()
-		if alive {
-			return server
-		}
-	}
-	return nil
-}
-
-func (ring *serverRing) doAll(fn func(*server)) {
-	for i := 0; i < ring.len; i++ {
-		fn(&ring.servers[i])
-	}
-}

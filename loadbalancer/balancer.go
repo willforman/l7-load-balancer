@@ -7,14 +7,27 @@ import (
 	"time"
 )
 
+type Algorithm int
+
+const (
+	RoundRobin Algorithm = iota
+	LeastConnections
+)
+
 type LoadBalancerArgs struct {
 	Addrs []string
 	Port  string
+	Algorithm Algorithm
+}
+
+type serverSelector interface {
+	get([]server) *server
 }
 
 type LoadBalancer struct {
-	serverRing serverRing
+	servers []server
 	port     string
+	selector serverSelector
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
@@ -28,18 +41,24 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 		servers[i] = *server
 	}
 
-	serverRing := newServerRing(servers)
+	var selector serverSelector
+
+	if args.Algorithm == RoundRobin {
+		selector = &roundRobin{0, serverLen};
+	}
+
 	return &LoadBalancer{
-		*serverRing,
+		servers,
 		args.Port,
+		selector,
 	}, nil
 }
 
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h := lb.serverRing.getAlive()
-		if h != nil {
-			h.proxy.ServeHTTP(w, r)
+		server := lb.selector.get(lb.servers)
+		if server != nil {
+			server.proxy.ServeHTTP(w, r)
 		} else {
 			log.Println("no hosts alive")
 		}
@@ -51,14 +70,14 @@ func (lb *LoadBalancer) startWatchDog() func() {
 
 	for {
 		<-ticker.C
-		lb.serverRing.doAll(func(server *server) {
+		for _, server := range lb.servers {
 			alive := isAlive(server.addr)
 			if alive != server.alive {
 				server.mu.Lock()
 				server.alive = alive
 				server.mu.Unlock()
 			}
-		})
+		}
 	}
 }
 

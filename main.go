@@ -22,6 +22,7 @@ func parseArgs(args []string) (*LoadBalancerArgs, error) {
 	return &LoadBalancerArgs{
 		Port:  args[0],
 		Addrs: args[1:],
+		Algorithm: RoundRobin,
 	}, nil
 }
 
