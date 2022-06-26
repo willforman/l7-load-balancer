@@ -40,19 +40,8 @@ func newServer(addr string) (*server, error) {
 	return &server{url.Host, *proxy, isAlive(url.Host), &mu}, nil
 }
 
-func newServerRing(addrs []string) (*serverRing, error) {
-	serversLen := len(addrs)
-	servers := make([]server, serversLen)
-
-	for i, addr := range addrs {
-		server, err := newServer(addr)
-		if err != nil {
-			return nil, err
-		}
-		servers[i] = *server
-	}
-
-	return &serverRing{servers, 0, serversLen}, nil
+func newServerRing(servers []server) *serverRing {
+	return &serverRing{servers, 0, len(servers)}
 }
 
 func (ring *serverRing) get() *server {

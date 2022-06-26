@@ -18,10 +18,17 @@ type LoadBalancer struct {
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
-	serverRing, err := newServerRing(args.Addrs)
-	if err != nil {
-		return nil, err
+	serverLen := len(args.Addrs)
+	servers := make([]server, serverLen)
+	for i, addr := range args.Addrs {
+		server, err := newServer(addr)
+		if err != nil {
+			panic(err)
+		}
+		servers[i] = *server
 	}
+
+	serverRing := newServerRing(servers)
 	return &LoadBalancer{
 		*serverRing,
 		args.Port,

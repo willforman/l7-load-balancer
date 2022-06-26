@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/matryer/is"
@@ -10,16 +9,16 @@ import (
 func TestParseArgs_Correct(t *testing.T) {
 	is := is.New(t)
 
-	testPort := 8000
-	testHosts := []string{"host1", "host2", "host3"}
-	testArgs := append([]string{strconv.Itoa(testPort)}, testHosts...)
-	appArgs, err := parseArgs(testArgs)
+	port := "8000"
+	addrs := []string{"host1", "host2", "host3"}
+	args := append([]string{port}, addrs...)
+	appArgs, err := parseArgs(args)
 
 	is.NoErr(err)
 	is.True(appArgs != nil)
 
-	is.Equal(appArgs.port, testPort)
-	is.Equal(appArgs.hosts, testHosts)
+	is.Equal(appArgs.Port, port)
+	is.Equal(appArgs.Addrs, addrs)
 }
 
 func TestParseArgs_NoArgs(t *testing.T) {
@@ -34,8 +33,8 @@ func TestParseArgs_NoArgs(t *testing.T) {
 func TestParseArgs_BadPort(t *testing.T) {
 	is := is.New(t)
 
-	testArgs := []string{"Bad port", "Host1"}
-	appArgs, err := parseArgs(testArgs)
+	args := []string{"Bad port", "Host1"}
+	appArgs, err := parseArgs(args)
 
 	is.True(err != nil)
 	is.Equal(appArgs, nil)
@@ -44,8 +43,8 @@ func TestParseArgs_BadPort(t *testing.T) {
 func TestParseArgs_PortOutOfRange(t *testing.T) {
 	is := is.New(t)
 
-	testArgs := []string{"-1", "Host1"}
-	appArgs, err := parseArgs(testArgs)
+	args := []string{"-1", "Host1"}
+	appArgs, err := parseArgs(args)
 
 	is.True(err != nil)
 	is.Equal(appArgs, nil)
