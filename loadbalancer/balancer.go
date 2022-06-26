@@ -21,7 +21,7 @@ type LoadBalancerArgs struct {
 }
 
 type serverSelector interface {
-	get([]server) *server
+	makeReq([]server, http.ResponseWriter, *http.Request)
 }
 
 type LoadBalancer struct {
@@ -56,12 +56,7 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		server := lb.selector.get(lb.servers)
-		if server != nil {
-			server.proxy.ServeHTTP(w, r)
-		} else {
-			log.Println("no hosts alive")
-		}
+		lb.selector.makeReq(lb.servers, w, r)
 	}
 }
 

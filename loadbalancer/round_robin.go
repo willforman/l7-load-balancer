@@ -1,5 +1,7 @@
 package loadbalancer
 
+import "net/http"
+
 type roundRobin struct {
 	curr int
 	len int
@@ -22,4 +24,9 @@ func (rr *roundRobin) get(servers []server) *server {
 		}
 	}
 	return nil
+}
+
+func (rr *roundRobin) makeReq(servers []server, w http.ResponseWriter, r *http.Request) {
+	server := rr.get(servers)
+	server.proxy.ServeHTTP(w, r)
 }

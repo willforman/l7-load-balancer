@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type TestResponse struct {
@@ -15,6 +16,7 @@ type TestResponse struct {
 func handle(tr *TestResponse) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("hit!")
+		time.Sleep(time.Second * 1)
 		switch r.Method {
 		case http.MethodGet:
 			json.NewEncoder(w).Encode(tr)
