@@ -21,7 +21,7 @@ type LoadBalancerArgs struct {
 }
 
 type serverSelector interface {
-	makeReq([]server, http.ResponseWriter, *http.Request)
+	makeReq(http.ResponseWriter, *http.Request)
 }
 
 type LoadBalancer struct {
@@ -44,7 +44,7 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 	var selector serverSelector
 
 	if args.Algorithm == RoundRobin {
-		selector = &roundRobin{0, serverLen};
+		selector = &roundRobin{servers, 0, serverLen};
 	}
 
 	return &LoadBalancer{
@@ -56,7 +56,7 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		lb.selector.makeReq(lb.servers, w, r)
+		lb.selector.makeReq(w, r)
 	}
 }
 

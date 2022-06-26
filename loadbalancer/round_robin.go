@@ -3,13 +3,14 @@ package loadbalancer
 import "net/http"
 
 type roundRobin struct {
+	servers []server
 	curr int
 	len int
 }
 
-func (rr *roundRobin) get(servers []server) *server {
+func (rr *roundRobin) get() *server {
 	for i := 0; i < rr.len; i++ {
-		server := servers[rr.curr]
+		server := rr.servers[rr.curr]
 		if rr.curr == rr.len - 1 {
 			rr.curr = 0
 		} else {
@@ -26,7 +27,7 @@ func (rr *roundRobin) get(servers []server) *server {
 	return nil
 }
 
-func (rr *roundRobin) makeReq(servers []server, w http.ResponseWriter, r *http.Request) {
-	server := rr.get(servers)
+func (rr *roundRobin) makeReq(w http.ResponseWriter, r *http.Request) {
+	server := rr.get()
 	server.proxy.ServeHTTP(w, r)
 }
