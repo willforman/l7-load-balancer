@@ -24,13 +24,9 @@ func isAlive(addr string) bool {
 	return false
 }
 
-func newServer(addr string) (*server, error) {
-	url, err := url.Parse(addr)
-	if err != nil {
-		return nil, err
-	}
+func newServer(url *url.URL) *server {
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
-	return &server{url.Host, *proxy, isAlive(url.Host), &mu}, nil
+	return &server{url.Host, *proxy, isAlive(url.Host), &mu}
 }
 

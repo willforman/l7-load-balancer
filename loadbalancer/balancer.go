@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -15,8 +16,8 @@ const (
 )
 
 type LoadBalancerArgs struct {
-	Addrs []string
-	Port  string
+	Urls []url.URL
+	Port  int
 	Algorithm Algorithm
 }
 
@@ -26,7 +27,7 @@ type serverSelector interface {
 
 type LoadBalancer struct {
 	servers []server
-	port     string
+	port     int
 	selector serverSelector
 }
 
@@ -41,13 +42,10 @@ func newSelector(algo Algorithm, servers []server) serverSelector {
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
-	serverLen := len(args.Addrs)
+	serverLen := len(args.Urls)
 	servers := make([]server, serverLen)
-	for i, addr := range args.Addrs {
-		server, err := newServer(addr)
-		if err != nil {
-			panic(err)
-		}
+	for i, url := range args.Urls {
+		server := newServer(&url)
 		servers[i] = *server
 	}
 
@@ -81,9 +79,9 @@ func (lb *LoadBalancer) startWatchDog() func() {
 	}
 }
 
-func (lb *LoadBalancer) Start() {
-	log.Printf("starting load balancer on port %s\n", lb.port)
+func (lb *LoadBalancer) Start(algoStr string) {
+	log.Printf("starting load balancer: port=%d algo=%s\n", lb.port, algoStr)
 	http.HandleFunc("/", lb.handler())
 	go lb.startWatchDog()
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", lb.port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", lb.port), nil))
 }

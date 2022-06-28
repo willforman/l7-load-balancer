@@ -1,33 +1,58 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
-	"strconv"
+	"net/url"
 
 	. "github.com/willforman/l7-load-balancer/loadbalancer"
 )
 
-func parseArgs(args []string) (*LoadBalancerArgs, error) {
-	if len(args) < 2 {
-		return nil, fmt.Errorf("num args provided < 2 [%d]", len(args))
+func parseArgs(port int, algoStr string, addrs []string) (*LoadBalancerArgs, error) {
+	if port < 1024 || port > 65535 {
+		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", port)
 	}
-	portNum, err := strconv.Atoi(args[0])
-	if err != nil {
-		return nil, fmt.Errorf("port cannot be parsed [%d]", portNum)
+
+	var algo Algorithm
+	switch (algoStr) {
+	case "lc":
+		algo = LeastConnections
+	case "rr":
+		algo = RoundRobin
+	default:
+		return nil, fmt.Errorf("algo choice not lc or rr [%s]", algoStr)
 	}
-	if portNum < 1024 || portNum > 65535 {
-		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", portNum)
+
+	numAddrs := len(addrs)
+	if numAddrs == 0 {
+		return nil, fmt.Errorf("no provided addrs as arguments")
 	}
+	urls := make([]url.URL, numAddrs)
+	for _, addr := range addrs {
+		url, err := url.Parse(addr)
+		if err != nil {
+			return nil, err
+		}
+		if url.Scheme != "http" {
+			return nil, fmt.Errorf("scheme not http: [%s -> %s]", addr, url.Scheme)
+		}
+		urls = append(urls, *url)
+	}
+		
+
 	return &LoadBalancerArgs{
-		Port:  args[0],
-		Addrs: args[1:],
-		Algorithm: LeastConnections,
+		Port:  port,
+		Urls: urls,
+		Algorithm: algo,
 	}, nil
 }
 
 func main() {
-	args, err := parseArgs(os.Args[1:])
+	port := flag.Int("port", 8080, "Port num")
+	algo := flag.String("algo", "lc", "Load balancing algorithm (either LeastConnections or RoundRobin)")
+	flag.Parse()
+
+	args, err := parseArgs(*port, *algo, flag.Args())
 	if err != nil {
 		panic(err)
 	}
@@ -35,5 +60,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lb.Start()
+	lb.Start(*algo)
 }
