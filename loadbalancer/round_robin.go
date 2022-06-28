@@ -8,6 +8,14 @@ type roundRobin struct {
 	len int
 }
 
+func newRoundRobin(servers []server) *roundRobin {
+	return &roundRobin{
+		servers,
+		0,
+		len(servers),
+	}
+}
+
 func (rr *roundRobin) get() *server {
 	for i := 0; i < rr.len; i++ {
 		server := rr.servers[rr.curr]

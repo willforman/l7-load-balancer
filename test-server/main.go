@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -13,10 +14,10 @@ type TestResponse struct {
 	Cnt  int    `json:"cnt"`
 }
 
-func handle(tr *TestResponse) http.HandlerFunc {
+func handle(tr *TestResponse, sleepSeconds *int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("hit!")
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * time.Duration(*sleepSeconds))
 		switch r.Method {
 		case http.MethodGet:
 			json.NewEncoder(w).Encode(tr)
@@ -29,12 +30,16 @@ func handle(tr *TestResponse) http.HandlerFunc {
 }
 
 func main() {
-	if len(os.Args) != 2 {
+	if len(os.Args) != 3 {
 		panic("must provide exactly 1 argument")
 	}
 	portStr := os.Args[1]
+	sleepSeconds, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		panic(err)
+	}
 	tr := TestResponse{portStr, 0}
 
-	http.HandleFunc("/api", handle(&tr))
+	http.HandleFunc("/api", handle(&tr, &sleepSeconds))
 	log.Fatal(http.ListenAndServe(portStr, nil))
 }

@@ -30,6 +30,16 @@ type LoadBalancer struct {
 	selector serverSelector
 }
 
+func newSelector(algo Algorithm, servers []server) serverSelector {
+	switch (algo) {
+	case RoundRobin:
+		return newRoundRobin(servers)
+	case LeastConnections:
+		return newLeastConnections(servers)
+	}
+	panic("invalid load balancing algorithm")
+}
+
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 	serverLen := len(args.Addrs)
 	servers := make([]server, serverLen)
@@ -41,16 +51,11 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 		servers[i] = *server
 	}
 
-	var selector serverSelector
-
-	if args.Algorithm == RoundRobin {
-		selector = &roundRobin{servers, 0, serverLen};
-	}
 
 	return &LoadBalancer{
 		servers,
 		args.Port,
-		selector,
+		newSelector(args.Algorithm, servers),
 	}, nil
 }
 
