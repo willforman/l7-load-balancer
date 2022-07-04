@@ -29,11 +29,11 @@ func newLeastConnections(srvrs []*server) *leastConnections {
 
 func (lc *leastConnections) choose() *server {
 	item := heap.Pop(&lc.pq).(*item)
-	server := item.value.(server)
+	server := item.value.(*server)
 
 	item.priority += 1
 	heap.Push(&lc.pq, item)
-	return &server
+	return server
 }
 
 func (lc *leastConnections) after(srvr *server) {

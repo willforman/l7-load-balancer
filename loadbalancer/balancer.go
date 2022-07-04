@@ -73,8 +73,8 @@ func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, er
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		srvr := lb.selector.choose()
-		if srvr == nil {
-			w.WriteHeader(503)
+		if srvr == nil { // No active servers
+			w.WriteHeader(503) 
 		} else {
 			srvr.proxy.ServeHTTP(w, r)
 			lb.selector.after(srvr)
