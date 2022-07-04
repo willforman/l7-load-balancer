@@ -19,6 +19,9 @@ func get(hostAddr string) error {
 	if err != nil {
 		return err
 	}
+	if res.StatusCode != 200 {
+		return fmt.Errorf("status not 200: %d", res.StatusCode)
+	}
 	defer res.Body.Close()
 
 	var tr TestResponse

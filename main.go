@@ -8,13 +8,13 @@ import (
 )
 
 func main() {
-	port := *flag.Int("port", 8080, "Port num")
-	algoStr := *flag.String("algo", "lc", "Load balancing algorithm (either LeastConnections or RoundRobin)")
+	port := flag.Int("port", 8080, "Port num")
+	algoStr := flag.String("algo", "lc", "Load balancing algorithm (either LeastConnections or RoundRobin)")
 	flag.Parse()
 
-	lb, err := NewLoadBalancer(port, algoStr, flag.Args())
+	lb, err := NewLoadBalancer(*port, *algoStr, flag.Args())
 	if err != nil {
 		panic(fmt.Errorf("NewLoadBalancer: %w", err))
 	}
-	lb.Start(algoStr)
+	lb.Start(*algoStr)
 }
