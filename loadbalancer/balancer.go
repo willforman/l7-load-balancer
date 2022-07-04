@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-type Algo int
+type algo int
 
 const (
-	RoundRobin Algo = iota
+	RoundRobin algo = iota
 	LeastConnections
 )
 
@@ -25,7 +25,7 @@ type LoadBalancer struct {
 	selector serverSelector
 }
 
-func newSelector(algo Algo, servers []*server) serverSelector {
+func newSelector(algo algo, servers []*server) serverSelector {
 	switch (algo) {
 	case RoundRobin:
 		return newRoundRobin(servers)
@@ -40,7 +40,7 @@ func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, er
 		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", port)
 	}
 
-	var algo Algo
+	var algo algo
 	switch (algoStr) {
 	case "lc":
 		algo = LeastConnections
