@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-type Algorithm int
+type Algo int
 
 const (
-	RoundRobin Algorithm = iota
+	RoundRobin Algo = iota
 	LeastConnections
 )
 
 type LoadBalancerArgs struct {
 	Addrs []string
 	Port  int
-	Algorithm Algorithm
+	AlgoStr string
 }
 
 type serverSelector interface {
@@ -31,7 +31,7 @@ type LoadBalancer struct {
 	selector serverSelector
 }
 
-func newSelector(algo Algorithm, servers []*server) serverSelector {
+func newSelector(algo Algo, servers []*server) serverSelector {
 	switch (algo) {
 	case RoundRobin:
 		return newRoundRobin(servers)
@@ -42,17 +42,37 @@ func newSelector(algo Algorithm, servers []*server) serverSelector {
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
+	if args.Port < 1024 || args.Port > 65535 {
+		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", args.Port)
+	}
+
+	var algo Algo
+	switch (args.AlgoStr) {
+	case "lc":
+		algo = LeastConnections
+	case "rr":
+		algo = RoundRobin
+	default:
+		return nil, fmt.Errorf("algo choice not lc or rr : %s", args.AlgoStr)
+	}
+
 	serverLen := len(args.Addrs)
+	if serverLen == 0 {
+		return nil, fmt.Errorf("must provide at least one server")
+	}
 	servers := make([]*server, serverLen)
 	for i, addr := range args.Addrs {
-		server := newServer(addr)
+		server, err := newServer(addr)
+		if err != nil {
+			return nil, fmt.Errorf("newServer: %w", err)
+		}
 		servers[i] = server
 	}
 
 	return &LoadBalancer{
 		servers,
 		args.Port,
-		newSelector(args.Algorithm, servers),
+		newSelector(algo, servers),
 	}, nil
 }
 
@@ -82,13 +102,9 @@ func (lb *LoadBalancer) startHealthCheck() func() {
 		for _, server := range lb.servers {
 			alive := isAlive(server.host)
 			if alive != server.alive {
-				println("diff:", alive)
-				println("server.alive before:", server.alive)
 				server.mu.Lock()
 				server.alive = alive
-				println("server.alive before lock:", server.alive)
 				server.mu.Unlock()
-				println("server.alive after:", server.alive)
 			}
 		}
 		lb.printStatus()

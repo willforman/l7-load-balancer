@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"fmt"
 	"net"
 	"net/http/httputil"
 	"net/url"
@@ -26,16 +27,16 @@ func isAlive(host string) bool {
 }
 
 // srvrUrl must be of form scheme+host+port
-func newServer(srvrUrl string) *server {
+func newServer(srvrUrl string) (*server, error) {
 	url, err := url.Parse(srvrUrl)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("url parse err: %w", err)
 	}
 	if url.Scheme != "http" {
-		panic("newServer: scheme given not http")
+		return nil, fmt.Errorf("scheme given not http: %s", url.Scheme)
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
-	return &server{url.Host, *proxy, isAlive(url.Host), &mu}
+	return &server{url.Host, *proxy, isAlive(url.Host), &mu}, nil
 }
 
