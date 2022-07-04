@@ -9,22 +9,31 @@ import (
 )
 
 type server struct {
-	addr string
+	host string
 	proxy httputil.ReverseProxy
 	alive bool
 	mu *sync.Mutex
 }
 
-func isAlive(addr string) bool {
-	conn, _ := net.DialTimeout("tcp", addr, time.Second * 10)
-	if conn != nil {
-		conn.Close()
-		return true
+// Host must be of form host+port (no scheme)
+func isAlive(host string) bool {
+	conn, err := net.DialTimeout("tcp", host, time.Second * 5)
+	if err != nil {
+		return false
 	}
-	return false
+	conn.Close()
+	return true
 }
 
-func newServer(url *url.URL) *server {
+// srvrUrl must be of form scheme+host+port
+func newServer(srvrUrl string) *server {
+	url, err := url.Parse(srvrUrl)
+	if err != nil {
+		panic(err)
+	}
+	if url.Scheme != "http" {
+		panic("newServer: scheme given not http")
+	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
 	return &server{url.Host, *proxy, isAlive(url.Host), &mu}

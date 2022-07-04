@@ -14,31 +14,33 @@ type TestResponse struct {
 	Cnt  int    `json:"cnt"`
 }
 
-func get(hostAddr string) {
+func get(hostAddr string) error {
 	res, err := http.Get(hostAddr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer res.Body.Close()
 
 	var tr TestResponse
 	err = json.NewDecoder(res.Body).Decode(&tr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	log.Printf("%s: %d\n", tr.Name, tr.Cnt)
+	return nil
 }
 
-func post(hostAddr string, inc int) {
+func post(hostAddr string, inc int) error {
 	reqBody, err := json.Marshal(&inc)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	_, err = http.Post(hostAddr, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func main() {
@@ -52,11 +54,15 @@ func main() {
 	for {
 		println("0: GET\n1: POST")
 		fmt.Scanln(&choice)
+		var err error
 		switch choice {
 		case 0:
-			get(hostAddr)
+			err = get(hostAddr)
 		case 1:
-			post(hostAddr, 1)
+			err = post(hostAddr, 1)
+		}
+		if err != nil {
+			println(err.Error())
 		}
 	}
 }

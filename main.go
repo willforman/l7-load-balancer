@@ -27,7 +27,6 @@ func parseArgs(port int, algoStr string, addrs []string) (*LoadBalancerArgs, err
 	if numAddrs == 0 {
 		return nil, fmt.Errorf("no provided addrs as arguments")
 	}
-	urls := make([]url.URL, numAddrs)
 	for _, addr := range addrs {
 		url, err := url.Parse(addr)
 		if err != nil {
@@ -36,13 +35,12 @@ func parseArgs(port int, algoStr string, addrs []string) (*LoadBalancerArgs, err
 		if url.Scheme != "http" {
 			return nil, fmt.Errorf("scheme not http: [%s -> %s]", addr, url.Scheme)
 		}
-		urls = append(urls, *url)
 	}
 		
 
 	return &LoadBalancerArgs{
 		Port:  port,
-		Urls: urls,
+		Addrs: addrs,
 		Algorithm: algo,
 	}, nil
 }

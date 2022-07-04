@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -16,22 +15,23 @@ const (
 )
 
 type LoadBalancerArgs struct {
-	Urls []url.URL
+	Addrs []string
 	Port  int
 	Algorithm Algorithm
 }
 
 type serverSelector interface {
-	makeReq(http.ResponseWriter, *http.Request)
+	choose() *server
+	after(*server)
 }
 
 type LoadBalancer struct {
-	servers []server
+	servers []*server
 	port     int
 	selector serverSelector
 }
 
-func newSelector(algo Algorithm, servers []server) serverSelector {
+func newSelector(algo Algorithm, servers []*server) serverSelector {
 	switch (algo) {
 	case RoundRobin:
 		return newRoundRobin(servers)
@@ -42,13 +42,12 @@ func newSelector(algo Algorithm, servers []server) serverSelector {
 }
 
 func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
-	serverLen := len(args.Urls)
-	servers := make([]server, serverLen)
-	for i, url := range args.Urls {
-		server := newServer(&url)
-		servers[i] = *server
+	serverLen := len(args.Addrs)
+	servers := make([]*server, serverLen)
+	for i, addr := range args.Addrs {
+		server := newServer(addr)
+		servers[i] = server
 	}
-
 
 	return &LoadBalancer{
 		servers,
@@ -59,29 +58,47 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 
 func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		lb.selector.makeReq(w, r)
+		srvr := lb.selector.choose()
+		if srvr == nil {
+			w.WriteHeader(503)
+		} else {
+			srvr.proxy.ServeHTTP(w, r)
+			lb.selector.after(srvr)
+		}
 	}
 }
 
-func (lb *LoadBalancer) startWatchDog() func() {
-	ticker := time.NewTicker(time.Second * 30)
+func (lb *LoadBalancer) printStatus() {
+	for _, server := range lb.servers {
+		println(server.host, ":",  server.alive)
+	}
+}
+
+func (lb *LoadBalancer) startHealthCheck() func() {
+	ticker := time.NewTicker(time.Second * 10)
 
 	for {
 		<-ticker.C
 		for _, server := range lb.servers {
-			alive := isAlive(server.addr)
+			alive := isAlive(server.host)
 			if alive != server.alive {
+				println("diff:", alive)
+				println("server.alive before:", server.alive)
 				server.mu.Lock()
 				server.alive = alive
+				println("server.alive before lock:", server.alive)
 				server.mu.Unlock()
+				println("server.alive after:", server.alive)
 			}
 		}
+		lb.printStatus()
 	}
 }
 
 func (lb *LoadBalancer) Start(algoStr string) {
 	log.Printf("starting load balancer: port=%d algo=%s\n", lb.port, algoStr)
+	lb.printStatus()
 	http.HandleFunc("/", lb.handler())
-	go lb.startWatchDog()
+	go lb.startHealthCheck()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", lb.port), nil))
 }
