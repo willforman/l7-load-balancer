@@ -11,37 +11,34 @@ type roundRobin struct {
 
 func newRoundRobin(servers []*server) *roundRobin {
 	var mu sync.Mutex
-	return &roundRobin{
-		servers,
+	rr := roundRobin{
+		nil,
 		0,
-		len(servers),
+		0,
 		&mu,
 	}
+	rr.newInput(servers)
+	return &rr
+}
+
+func (rr *roundRobin) newInput(servers []*server) {
+	rr.mu.Lock()
+	defer rr.mu.Unlock()
+
+	rr.curr = 0
+	rr.len = len(servers)
+	rr.servers = servers
 }
 
 func (rr *roundRobin) choose() *server {
-	for i := 0; i < rr.len; i++ {
-		rr.mu.Lock()
-		server := rr.servers[rr.curr]
-		rr.mu.Unlock()
-		if rr.curr == rr.len - 1 {
-			rr.curr = 0
-		} else {
-			rr.curr += 1
-		}
-		return server
-	}
-	return nil
+	rr.mu.Lock()
+	defer rr.mu.Unlock()
+
+	server := rr.servers[rr.curr % rr.len]
+	rr.curr++
+	return server
 }
 
 func (*roundRobin) after(*server) {
 
-}
-
-func (rr *roundRobin) passAliveServers(newSrvrs []*server) {
-	rr.mu.Lock()
-	rr.servers = newSrvrs
-	rr.curr = 0
-	rr.len = len(newSrvrs)
-	rr.mu.Unlock()
 }

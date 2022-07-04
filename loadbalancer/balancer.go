@@ -15,9 +15,9 @@ const (
 )
 
 type serverSelector interface {
+	newInput([]*server)
 	choose() *server
 	after(*server)
-	passAliveServers([]*server)
 }
 
 type LoadBalancer struct {
@@ -82,10 +82,11 @@ func (lb *LoadBalancer) handler() http.HandlerFunc {
 			}
 			srvr.proxy.ServeHTTP(w, r)
 			if ok {
+				lb.selector.after(srvr)
 				return
 			}
 			aliveSrvrs := healthCheck(lb.servers)
-			lb.selector.passAliveServers(aliveSrvrs)
+			lb.selector.newInput(aliveSrvrs)
 			srvr = lb.selector.choose()
 		}
 		w.WriteHeader(503) 
@@ -108,7 +109,7 @@ func (lb *LoadBalancer) periodicHealthCheck() func() {
 	for {
 		<-ticker.C
 		aliveSrvrs := healthCheck(lb.servers)
-		lb.selector.passAliveServers(aliveSrvrs)
+		lb.selector.newInput(aliveSrvrs)
 	}
 }
 
