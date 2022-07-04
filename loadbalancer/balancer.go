@@ -17,6 +17,7 @@ const (
 type serverSelector interface {
 	choose() *server
 	after(*server)
+	passAliveServers([]*server)
 }
 
 type LoadBalancer struct {
@@ -74,45 +75,45 @@ func (lb *LoadBalancer) handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		
 		srvr := lb.selector.choose()
-		// Keep finding new requests until one works or we run out of servers
 		for srvr != nil {
+			ok := true
+			srvr.proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+				ok = false
+			}
 			srvr.proxy.ServeHTTP(w, r)
-			if srvr.alive { // Hacky way to tell if request went through
-				lb.selector.after(srvr)
+			if ok {
 				return
 			}
+			aliveSrvrs := healthCheck(lb.servers)
+			lb.selector.passAliveServers(aliveSrvrs)
 			srvr = lb.selector.choose()
 		}
 		w.WriteHeader(503) 
 	}
 }
 
-func (lb *LoadBalancer) printStatus() {
-	for _, server := range lb.servers {
-		println(server.host, ":",  server.alive)
+func healthCheck(allSrvrs []*server) []*server {
+	var aliveSrvrs []*server
+	for _, server := range allSrvrs {
+		if isAlive(server.host) {
+			aliveSrvrs = append(aliveSrvrs, server)
+		}
 	}
+	return aliveSrvrs
 }
 
-func (lb *LoadBalancer) startHealthCheck() func() {
+func (lb *LoadBalancer) periodicHealthCheck() func() {
 	ticker := time.NewTicker(time.Second * 20)
 
 	for {
 		<-ticker.C
-		for _, server := range lb.servers {
-			alive := isAlive(server.host)
-			if alive != server.alive {
-				server.mu.Lock()
-				server.alive = alive
-				server.mu.Unlock()
-			}
-		}
-		lb.printStatus()
+		aliveSrvrs := healthCheck(lb.servers)
+		lb.selector.passAliveServers(aliveSrvrs)
 	}
 }
 
 func (lb *LoadBalancer) Start() {
-	lb.printStatus()
 	http.HandleFunc("/", lb.handler())
-	go lb.startHealthCheck()
+	go lb.periodicHealthCheck()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", lb.port), nil))
 }

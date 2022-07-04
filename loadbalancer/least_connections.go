@@ -40,3 +40,7 @@ func (lc *leastConnections) after(srvr *server) {
 	item := lc.srvrToItem[srvr.host]
 	lc.pq.update(item, item.priority - 1)
 }
+
+func (lc *leastConnections) passAliveServers(newSrvrs []*server) {
+
+}
