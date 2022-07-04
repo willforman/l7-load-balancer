@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 
 	. "github.com/willforman/l7-load-balancer/loadbalancer"
 )
@@ -16,5 +17,6 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("NewLoadBalancer: %w", err))
 	}
-	lb.Start(*algoStr)
+	log.Printf("starting load balancer: port=%d algo=%s\n", *port, *algoStr)
+	lb.Start()
 }

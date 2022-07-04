@@ -105,8 +105,7 @@ func (lb *LoadBalancer) startHealthCheck() func() {
 	}
 }
 
-func (lb *LoadBalancer) Start(algoStr string) {
-	log.Printf("starting load balancer: port=%d algo=%s\n", lb.port, algoStr)
+func (lb *LoadBalancer) Start() {
 	lb.printStatus()
 	http.HandleFunc("/", lb.handler())
 	go lb.startHealthCheck()
