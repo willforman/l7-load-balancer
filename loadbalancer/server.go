@@ -3,6 +3,7 @@ package loadbalancer
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"sync"
@@ -26,7 +27,15 @@ func isAlive(host string) bool {
 	return true
 }
 
-// srvrUrl must be of form scheme+host+port
+func (srvr *server) proxyErrHandler() func(w http.ResponseWriter, r *http.Request, err error) {
+	return func(w http.ResponseWriter, r *http.Request, err error) {
+		srvr.mu.Lock()
+		srvr.alive = false
+		srvr.mu.Unlock()
+	}
+}
+
+// SrvrUrl must be of form scheme+host+port
 func newServer(srvrUrl string) (*server, error) {
 	url, err := url.Parse(srvrUrl)
 	if err != nil {
@@ -37,6 +46,8 @@ func newServer(srvrUrl string) (*server, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	var mu sync.Mutex
-	return &server{url.Host, *proxy, isAlive(url.Host), &mu}, nil
+	srvr := &server{url.Host, *proxy, isAlive(url.Host), &mu}
+	srvr.proxy.ErrorHandler = srvr.proxyErrHandler()
+	return srvr, nil
 }
 

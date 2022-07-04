@@ -70,15 +70,20 @@ func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, er
 	}, nil
 }
 
-func (lb *LoadBalancer) handler() func(http.ResponseWriter, *http.Request) {
+func (lb *LoadBalancer) handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		
 		srvr := lb.selector.choose()
-		if srvr == nil { // No active servers
-			w.WriteHeader(503) 
-		} else {
+		// Keep finding new requests until one works or we run out of servers
+		for srvr != nil {
 			srvr.proxy.ServeHTTP(w, r)
-			lb.selector.after(srvr)
+			if srvr.alive { // Hacky way to tell if request went through
+				lb.selector.after(srvr)
+				return
+			}
+			srvr = lb.selector.choose()
 		}
+		w.WriteHeader(503) 
 	}
 }
 
@@ -89,7 +94,7 @@ func (lb *LoadBalancer) printStatus() {
 }
 
 func (lb *LoadBalancer) startHealthCheck() func() {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * 20)
 
 	for {
 		<-ticker.C
