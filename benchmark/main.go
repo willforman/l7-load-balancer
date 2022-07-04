@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -54,35 +53,28 @@ func main() {
 		srvrs[i] = srvr
 	}
 
-	urls := make([]url.URL, numSrvrs)
+	urls := make([]string, numSrvrs)
 	for i, port := range srvrPorts {
-		url, err := url.Parse(fmt.Sprintf("http://localhost:%s", port))
-		if err != nil {
-			panic(err)
-		}
-		urls[i] = *url
+		urls[i] = fmt.Sprintf("http://localhost:%s", port)
 	}
 	
 	lbPort := 8080
 	lbAddr := fmt.Sprintf("http://localhost:%d", lbPort)
-	lbArgs := loadbalancer.LoadBalancerArgs{
-		Port: lbPort,
-		Urls: urls,
-		Algorithm: loadbalancer.RoundRobin,
-	}
-	lb, err := loadbalancer.NewLoadBalancer(&lbArgs)
+	lb, err := loadbalancer.NewLoadBalancer(lbPort, "rr", urls)
 	if err != nil {
 		panic(err)
 	}
-	go lb.Start("rr")
+	go lb.Start()
 
-	numWorkers := 3
+	numWorkers := 10
 	out := make(chan string, numWorkers)
 
 	go func() {
 		for i := 1; i <= numWorkers; i++ {
 			go func(i int) {
-				resp, err := http.Get(lbAddr)
+				// start := time.Now()
+				resp, _ := http.Get(lbAddr)
+				// delta := time.Now().Sub(start)
 				if err != nil {
 					return
 				}
@@ -90,7 +82,7 @@ func main() {
 				b, _ := io.ReadAll(resp.Body)
 				out <- string(b)
 			}(i)
-			time.Sleep(time.Millisecond * time.Duration(500 * i))
+			time.Sleep(time.Millisecond * 500)
 		}
 	}()
 
