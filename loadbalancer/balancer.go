@@ -14,12 +14,6 @@ const (
 	LeastConnections
 )
 
-type LoadBalancerArgs struct {
-	Addrs []string
-	Port  int
-	AlgoStr string
-}
-
 type serverSelector interface {
 	choose() *server
 	after(*server)
@@ -41,27 +35,27 @@ func newSelector(algo Algo, servers []*server) serverSelector {
 	panic("invalid load balancing algorithm")
 }
 
-func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
-	if args.Port < 1024 || args.Port > 65535 {
-		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", args.Port)
+func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, error) {
+	if port < 1024 || port > 65535 {
+		return nil, fmt.Errorf("port out of range 1024 < p < 65535 [%d]", port)
 	}
 
 	var algo Algo
-	switch (args.AlgoStr) {
+	switch (algoStr) {
 	case "lc":
 		algo = LeastConnections
 	case "rr":
 		algo = RoundRobin
 	default:
-		return nil, fmt.Errorf("algo choice not lc or rr : %s", args.AlgoStr)
+		return nil, fmt.Errorf("algo choice not lc or rr : %s", algoStr)
 	}
 
-	serverLen := len(args.Addrs)
+	serverLen := len(urls)
 	if serverLen == 0 {
 		return nil, fmt.Errorf("must provide at least one server")
 	}
 	servers := make([]*server, serverLen)
-	for i, addr := range args.Addrs {
+	for i, addr := range urls {
 		server, err := newServer(addr)
 		if err != nil {
 			return nil, fmt.Errorf("newServer: %w", err)
@@ -71,7 +65,7 @@ func NewLoadBalancer(args *LoadBalancerArgs) (*LoadBalancer, error) {
 
 	return &LoadBalancer{
 		servers,
-		args.Port,
+		port,
 		newSelector(algo, servers),
 	}, nil
 }
