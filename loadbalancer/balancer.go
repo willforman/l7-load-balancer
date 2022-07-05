@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,6 +25,7 @@ type LoadBalancer struct {
 	servers []*server
 	port     int
 	selector serverSelector
+	lbServer *http.Server
 }
 
 func newSelector(algo algo, servers []*server) serverSelector {
@@ -34,6 +36,27 @@ func newSelector(algo algo, servers []*server) serverSelector {
 		return newLeastConnections(servers)
 	}
 	panic("invalid load balancing algorithm")
+}
+
+func proxyHandler(selector serverSelector, servers []*server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		srvr := selector.choose()
+		for srvr != nil {
+			ok := true
+			srvr.proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+				ok = false
+			}
+			srvr.proxy.ServeHTTP(w, r)
+			if ok {
+				selector.after(srvr)
+				return
+			}
+			aliveSrvrs := healthCheck(servers)
+			selector.newInput(aliveSrvrs)
+			srvr = selector.choose()
+		}
+		w.WriteHeader(503) 
+	}
 }
 
 func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, error) {
@@ -64,33 +87,21 @@ func NewLoadBalancer(port int, algoStr string, urls []string) (*LoadBalancer, er
 		servers[i] = server
 	}
 
+	selector := newSelector(algo, servers)
+
+	handler := http.NewServeMux()
+	handler.HandleFunc("/", proxyHandler(selector, servers))
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		Handler: handler,
+	}
+
 	return &LoadBalancer{
 		servers,
 		port,
-		newSelector(algo, servers),
+		selector,
+		server,
 	}, nil
-}
-
-func (lb *LoadBalancer) handler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		
-		srvr := lb.selector.choose()
-		for srvr != nil {
-			ok := true
-			srvr.proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-				ok = false
-			}
-			srvr.proxy.ServeHTTP(w, r)
-			if ok {
-				lb.selector.after(srvr)
-				return
-			}
-			aliveSrvrs := healthCheck(lb.servers)
-			lb.selector.newInput(aliveSrvrs)
-			srvr = lb.selector.choose()
-		}
-		w.WriteHeader(503) 
-	}
 }
 
 func healthCheck(allSrvrs []*server) []*server {
@@ -114,7 +125,14 @@ func (lb *LoadBalancer) periodicHealthCheck() func() {
 }
 
 func (lb *LoadBalancer) Start() {
-	http.HandleFunc("/", lb.handler())
 	go lb.periodicHealthCheck()
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", lb.port), nil))
+	err := lb.lbServer.ListenAndServe()
+	if err != http.ErrServerClosed {
+		log.Fatalf("ListenAndServe(): %v", err)
+	}
 }
+
+func (lb *LoadBalancer) Stop() error {
+	return lb.lbServer.Shutdown(context.Background())
+}
+
