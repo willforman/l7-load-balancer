@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	. "github.com/willforman/l7-load-balancer/loadbalancer"
 )
@@ -16,6 +17,7 @@ func startServer(port string, wg *sync.WaitGroup) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Millisecond * 500)
 		io.WriteString(w, port)
 	})
 	srvr := &http.Server{ 
@@ -34,14 +36,12 @@ func startServer(port string, wg *sync.WaitGroup) *http.Server {
 
 func startServers(startPort int, numServers int, serversDone *sync.WaitGroup) ([]string, []*http.Server) {
 	servers := make([]*http.Server, numServers)
-	urls := make([]string, numServers) 
+	ports := make([]string, numServers) 
 	for i := 0; i < numServers; i++ {
-		portStr := strconv.Itoa(startPort + i)
-		urls[i] = fmt.Sprintf("http://localhost:%s", portStr)
-
-		servers[i] = startServer(portStr, serversDone)
+		ports[i] = strconv.Itoa(startPort + i)
+		servers[i] = startServer(ports[i], serversDone)
 	}
-	return urls, servers
+	return ports, servers
 }
 
 func cleanUp(srvrs []*http.Server, srvrsDone *sync.WaitGroup) {

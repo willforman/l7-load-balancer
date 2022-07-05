@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -17,7 +18,11 @@ func main() {
 	var serversDone sync.WaitGroup
 	serversDone.Add(*numServers)
 
-	urls, servers := startServers(*startPort, *numServers, &serversDone)
+	ports, servers := startServers(*startPort, *numServers, &serversDone)
+	urls := make([]string, *numServers)
+	for i, port := range ports {
+		urls[i] = fmt.Sprintf("http://localhost:%s", port)
+	}
 
 	lbUrl, lb := startLb(*startPort + *numServers, urls)
 
@@ -26,9 +31,7 @@ func main() {
 
 	go runBenchmark(lbUrl, *numReqs, reqPeriod, out)
 
-	for i := 0; i < *numReqs; i++ {
-		println("recv:", (<-out).port)
-	}
+	handleResults(*numReqs, ports, out)
 
 	close(out)
 
