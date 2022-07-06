@@ -45,7 +45,8 @@ func handleResults(numReqs int, ports []string, results <-chan BenchmarkRequest)
 		total += res.dur.Microseconds()
 		counts[res.port]++
 
-		for port, count := range counts {
+		for _, port := range ports {
+			count := counts[port]
 			fmt.Printf("%s %s\n", port, strings.Repeat("#", count))
 		}
 		// Move cursor up 
