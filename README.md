@@ -11,6 +11,8 @@ Active health checks for hosts. Requests are distributed accross active hosts.
 
 ## Demo
 
+Lower standard deviation is better, because it means the load is being spread more evenly.
+
 ### Round Robin
 
 ![Round robin demonstration gif](./public/rr.gif)
