@@ -13,11 +13,11 @@ Active health checks for hosts. Requests are distributed accross active hosts.
 
 ### Round Robin
 
-![Round robin demonstration gif](./public/rr-performance.gif)
+![Round robin demonstration gif](./public/rr.gif)
 
 ### Least Connections
 
-![Least connections demonstration gif](./public/lc-performance.gif)
+![Least connections demonstration gif](./public/lc.gif)
 
 ## Usage
 
