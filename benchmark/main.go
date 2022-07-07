@@ -29,19 +29,16 @@ func main() {
 	out := make(chan BenchmarkRequest, *numReqs)
 	reqPeriod := time.Millisecond * time.Duration(*reqPeriodMs)
 
-	// Setup printing in a new goroutine
 	printTicker := time.NewTicker(time.Millisecond * 100)
 	printTickerDone := make(chan bool)
 	go printPendingReqs(pendingCalls, ports, printTicker, printTickerDone)
 
 	go runBenchmark(lbUrl, *numReqs, reqPeriod, out)
-
 	handleResults(*numReqs, out, pendingCalls, ports)
 
 	close(out)
 	printTicker.Stop()
 	printTickerDone <- true
-
 	cleanUp(servers, &serversDone)
 	err := lb.Stop()
 	if err != nil {
