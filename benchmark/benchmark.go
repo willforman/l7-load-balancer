@@ -13,7 +13,12 @@ type BenchmarkRequest struct {
 	dur time.Duration
 }
 
-func runBenchmark(url string, numReqs int, period time.Duration, output chan<- BenchmarkRequest) {
+func runBenchmark(
+	url string, 
+	numReqs int, 
+	period time.Duration, 
+	output chan<- BenchmarkRequest,
+) {
 	for i := 1; i <= numReqs; i++ {
 		go func(i int) {
 			start := time.Now()
@@ -33,27 +38,29 @@ func runBenchmark(url string, numReqs int, period time.Duration, output chan<- B
 	}
 }
 
-func handleResults(numReqs int, ports []string, results <-chan BenchmarkRequest) {
-	counts := make(map[string]int, len(ports))
-	for _, port := range ports {
-		counts[port] = 0
+func printPendingReqs(pendingCalls []int64, ports []string, ticker *time.Ticker, done <-chan bool) {
+	for {
+		select {
+		case <-done:
+			return
+		case _ = <-ticker.C:
+			for i, port := range ports {
+				calls := pendingCalls[i]
+				fmt.Printf("\033[K")
+				fmt.Printf("%s %s\n", port, strings.Repeat("#", int(calls)))
+			}
+			fmt.Print(strings.Repeat("\033[A", len(ports)))
+		}
 	}
-	total := int64(0)
+}
 
+func handleResults(numReqs int, results <-chan BenchmarkRequest, pendingReqs []int64, ports []string) {
+	total := int64(0)
 	for i := 1; i <= numReqs; i++ {
 		res := <-results
 		total += res.dur.Microseconds()
-		counts[res.port]++
-
-		for _, port := range ports {
-			count := counts[port]
-			fmt.Printf("%s %s\n", port, strings.Repeat("#", count))
-		}
-		// Move cursor up 
-		if i != numReqs {
-			fmt.Print(strings.Repeat("\033[A", len(ports)))
-		}
 	}
 	mean := total / int64(numReqs)
 	fmt.Printf("mean = %d.%dms\n", mean / 1000, mean % 1000)
 }
+
