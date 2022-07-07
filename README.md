@@ -2,12 +2,12 @@
 
 Simple application level load balancer.
 
-Can use following algorithms:
+Can use the following algorithms:
 
 - Round robin
 - Least connections
 
-Active health checks for hosts. Requests are distributed accross active hosts.
+Active health checks in the background for hosts, so requests can be distributed across active hosts.
 
 ## Demo
 
