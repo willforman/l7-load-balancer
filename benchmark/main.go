@@ -13,6 +13,7 @@ func main() {
 	numServers := flag.Int("numServers", 3, "number of servers to create")
 	numReqs := flag.Int("numReqs", 10, "number of requests to make")
 	reqPeriodMs := flag.Int("reqPeriod", 500, "milliseconds to wait between requests")
+	algoStr := flag.String("algo", "lc", "Load balancing algorithm (either LeastConnections or RoundRobin)")
 	flag.Parse()
 
 	var serversDone sync.WaitGroup
@@ -24,7 +25,7 @@ func main() {
 		urls[i] = fmt.Sprintf("http://localhost:%s", port)
 	}
 
-	lbUrl, lb := startLb(*startPort + *numServers, urls)
+	lbUrl, lb := startLb(*startPort + *numServers, urls, *algoStr)
 
 	out := make(chan BenchmarkRequest, *numReqs)
 	reqPeriod := time.Millisecond * time.Duration(*reqPeriodMs)

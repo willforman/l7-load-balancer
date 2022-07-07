@@ -13,11 +13,11 @@ import (
 	. "github.com/willforman/l7-load-balancer/loadbalancer"
 )
 
-func startServer(port string, wg *sync.WaitGroup) *http.Server {
+func startServer(port string, wg *sync.WaitGroup, sleepDuration time.Duration) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(sleepDuration)
 		io.WriteString(w, port)
 	})
 	srvr := &http.Server{ 
@@ -39,7 +39,8 @@ func startServers(startPort int, numServers int, serversDone *sync.WaitGroup) ([
 	ports := make([]string, numServers) 
 	for i := 0; i < numServers; i++ {
 		ports[i] = strconv.Itoa(startPort + i)
-		servers[i] = startServer(ports[i], serversDone)
+		sleepDuration := time.Millisecond * time.Duration((i * 100))
+		servers[i] = startServer(ports[i], serversDone, sleepDuration)
 	}
 	return ports, servers
 }
@@ -52,9 +53,9 @@ func cleanUp(srvrs []*http.Server, srvrsDone *sync.WaitGroup) {
 	srvrsDone.Wait()
 }
 
-func startLb(lbPort int, urls []string) (string, *LoadBalancer){
+func startLb(lbPort int, urls []string, algoStr string) (string, *LoadBalancer){
 	lbAddr := fmt.Sprintf("http://localhost:%d", lbPort)
-	lb, err := NewLoadBalancer(lbPort, "rr", urls)
+	lb, err := NewLoadBalancer(lbPort, algoStr, urls)
 	if err != nil {
 		panic(err)
 	}
